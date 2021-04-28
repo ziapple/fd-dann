@@ -101,6 +101,7 @@ ENV/
 .mypy_cache/
 
 # dataset
+dataset/*.gz
 dataset/mnist_m
 dataset/MNIST
 

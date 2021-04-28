@@ -6,6 +6,7 @@ class CNNModel(nn.Module):
 
     def __init__(self):
         super(CNNModel, self).__init__()
+        # 特征提取网络
         self.feature = nn.Sequential()
         self.feature.add_module('f_conv1', nn.Conv2d(3, 64, kernel_size=5))
         self.feature.add_module('f_bn1', nn.BatchNorm2d(64))
@@ -17,6 +18,7 @@ class CNNModel(nn.Module):
         self.feature.add_module('f_pool2', nn.MaxPool2d(2))
         self.feature.add_module('f_relu2', nn.ReLU(True))
 
+        # 标签分类网络
         self.class_classifier = nn.Sequential()
         self.class_classifier.add_module('c_fc1', nn.Linear(50 * 4 * 4, 100))
         self.class_classifier.add_module('c_bn1', nn.BatchNorm1d(100))
@@ -28,6 +30,8 @@ class CNNModel(nn.Module):
         self.class_classifier.add_module('c_fc3', nn.Linear(100, 10))
         self.class_classifier.add_module('c_softmax', nn.LogSoftmax())
 
+        # 源域和目标域分类网络, 在特征层后加入了一项MMD适配层，用来计算源域和目标域的距离，loss就是尽量减少两个域之间的距离
+        # 通过这两个域loss的训练，够提取源域和目标域的特征映射到一个共同的空间，并且接近两个特征自适应
         self.domain_classifier = nn.Sequential()
         self.domain_classifier.add_module('d_fc1', nn.Linear(50 * 4 * 4, 100))
         self.domain_classifier.add_module('d_bn1', nn.BatchNorm1d(100))
@@ -35,6 +39,7 @@ class CNNModel(nn.Module):
         self.domain_classifier.add_module('d_fc2', nn.Linear(100, 2))
         self.domain_classifier.add_module('d_softmax', nn.LogSoftmax(dim=1))
 
+    # 网络前向传播，提取特征，计算分类结果和域判定结果
     def forward(self, input_data, alpha):
         input_data = input_data.expand(input_data.data.shape[0], 3, 28, 28)
         feature = self.feature(input_data)
