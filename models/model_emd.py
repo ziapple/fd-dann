@@ -1,21 +1,27 @@
 import torch.nn as nn
 from models.functions import ReverseLayerF
 
+# emd的imf分量数，等同于图像的初始RGB通道数3
+EMD_IMF_NUMBERS = 6
+# emd分量的长度
+EMD_WIDTH = 6000
 
+
+# X输入=[batch_size = 128, channels = 6, height = 1, width = 6000]
 class CNNModel(nn.Module):
 
     def __init__(self):
         super(CNNModel, self).__init__()
         # 特征提取网络
         self.feature = nn.Sequential()
-        # input=[batch_size, in_channels, height, width], nn.Conv2d[channels, output, height, width]
+        # input=[batch_size, EMD_IMF, 1, EMD_WIDTH], nn.Conv2d[channels, output, height, width]
         # channels=in_channels, output表示卷积核数量，kernel_size表示卷积核大小
-        self.feature.add_module('f_conv1', nn.Conv2d(3, 64, kernel_size=5))
-        # BatchNorm2d(num_features)，等于上层特征数
+        self.feature.add_module('f_conv1', nn.Conv2d(EMD_IMF_NUMBERS, 64, kernel_size=32))
+        # 归一化，BatchNorm2d(num_features)，等于上层特征数
         self.feature.add_module('f_bn1', nn.BatchNorm2d(64))
         self.feature.add_module('f_pool1', nn.MaxPool2d(2))
         self.feature.add_module('f_relu1', nn.ReLU(True))
-        self.feature.add_module('f_conv2', nn.Conv2d(64, 50, kernel_size=5))
+        self.feature.add_module('f_conv2', nn.Conv2d(64, 50, kernel_size=32))
         self.feature.add_module('f_bn2', nn.BatchNorm2d(50))
         self.feature.add_module('f_drop1', nn.Dropout2d())
         self.feature.add_module('f_pool2', nn.MaxPool2d(2))
