@@ -5,7 +5,7 @@ import os
 
 # emd数据加载器
 class GetLoader(data.Dataset):
-    def __init__(self, data_root, data_list, transform=None):
+    def __init__(self, data_root, file_name, transform=None):
         self.root = data_root
         self.transform = transform
 
@@ -34,3 +34,23 @@ class GetLoader(data.Dataset):
 
     def __len__(self):
         return self.n_data
+
+    def read_matdata(fpath):
+        """
+           读取DE_time驱动端的振动数据
+           DE - drive end accelerometer data
+           FE - fan end accelerometer data
+           BA - base accelerometer data
+           time - time series data
+           RPM- rpm during testing
+        """
+        mat_dict = loadmat(fpath)
+        # 过滤DE_time这一列
+        fliter_i = filter(lambda x: 'DE_time' in x, mat_dict.keys())
+        # 构造数组
+        fliter_list = [item for item in fliter_i]
+        # 获取第一列
+        key = fliter_list[0]
+        # 获取n*1二维矩阵的第1列, time_serries.shape=(122571,)
+        time_series = mat_dict[key][:, 0]
+        return time_series

@@ -104,6 +104,7 @@ ENV/
 dataset/*.gz
 dataset/mnist_m
 dataset/MNIST
+dataset/cwru*
 
 # model
 models/*.pth
