@@ -3,7 +3,7 @@ import numpy as np
 import random
 import os
 from PyEMD import EEMD
-import data_conf as conf
+from dataset import data_conf as conf
 
 
 # mat文件为采样样本，采样频率为12k，10秒采集一次，生成一个文件，共samples=122571采集点
@@ -46,9 +46,8 @@ def save_data_to_emd(file_name, data_type):
             # 按3/4比例为训练数据，1/4为测试数据
             n_split = int((3 * len(a) / 4))
             # 二维数组填充,增量式填充
-            x_train = [], x_test = []
-            x_train = np.vstack((x_train, a[:n_split]))
-            x_test = np.vstack((x_test, a[n_split:]))
+            x_train = a[:n_split]
+            x_test = a[n_split:]
             np.savetxt(os.path.join(conf.DATA_DIR + data_type + "/train/", short_name + '.emd'), x_train)
             print("save success {%s}", os.path.join(conf.DATA_DIR + data_type + "/train", short_name + '.emd'))
             np.savetxt(os.path.join(conf.DATA_DIR + data_type + "/test/", short_name + '.emd'), x_test)
@@ -88,6 +87,6 @@ def _shuffle(x, y):
 
 if __name__ == "__main__":
     # 驱动端作为源数据
-    # save_data_to_emd("12K_Drive", "source")
+    save_data_to_emd("12k_Drive", "source")
     # 风扇端作为模型要迁移目标数据
-    save_data_to_emd("12K_Fan", "target")
+    # save_data_to_emd("12K_Fan", "target")
