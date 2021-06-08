@@ -87,6 +87,6 @@ def _shuffle(x, y):
 
 if __name__ == "__main__":
     # 驱动端作为源数据
-    save_data_to_emd("12k_Drive", "source")
+    # save_data_to_emd("12k_Drive_End_OR021@6_0_234", "source")
     # 风扇端作为模型要迁移目标数据
-    # save_data_to_emd("12K_Fan", "target")
+    save_data_to_emd("12K_Fan", "target")

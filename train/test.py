@@ -7,6 +7,8 @@ from torchvision import datasets
 
 NUM_WORKERS = 4
 cuda = False
+source_dataset_name = 'MNIST'
+target_dataset_name = 'mnist_m'
 
 
 def test(dataset_name, epoch):
@@ -103,3 +105,8 @@ def test(dataset_name, epoch):
     accu = n_correct.data.numpy() * 1.0 / n_total
 
     print('epoch: %d, accuracy of the %s dataset: %f' % (epoch, dataset_name, accu))
+
+
+if __name__ == '__main__':
+    test(source_dataset_name, 99)
+    test(target_dataset_name, 99)

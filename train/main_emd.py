@@ -8,7 +8,7 @@ import torch.utils.data
 from dataset.data_loader_emd import GetLoader
 from torchvision import datasets
 from torchvision import transforms
-from models.model_emd import CNNModel
+from models.model_emd_1 import CNNModel
 import numpy as np
 from test_emd import test
 
@@ -36,17 +36,16 @@ random.seed(manual_seed)
 # 为CPU设置种子用于生成随机数
 torch.manual_seed(manual_seed)
 
-
 # 加载目标源数据集
 dataset_source = GetLoader(
     data_root=source_emd_root,
     data_dir="train",
     transform=None
 )
-
 dataloader_source = torch.utils.data.DataLoader(
     dataset=dataset_source,
     batch_size=batch_size,
+    drop_last=True,
     shuffle=True,
     num_workers=NUM_WORKERS)
 
@@ -57,11 +56,10 @@ dataset_target = GetLoader(
     data_dir="train",
     transform=None
 )
-
-# 符合pytorch训练模型的目标数据加载器
 dataloader_target = torch.utils.data.DataLoader(
     dataset=dataset_target,
     batch_size=batch_size,
+    drop_last=True,
     shuffle=True,
     num_workers=NUM_WORKERS)
 
@@ -107,51 +105,54 @@ if __name__ == '__main__':
             my_net.zero_grad()
             batch_size = len(s_label)
 
-            input_emd = torch.FloatTensor(batch_size, emd_channels, 1, emd_width)
-            class_label = torch.LongTensor(batch_size)
-            domain_label = torch.zeros(batch_size)
-            domain_label = domain_label.long()
+            s_input_emd = torch.FloatTensor(batch_size, emd_channels, 1, emd_width)
+            s_class_label = torch.LongTensor(batch_size)
+            s_domain_label = torch.zeros(batch_size)
+            s_domain_label = s_domain_label.long()
 
             if cuda:
                 s_emd = s_emd.cuda()
                 s_label = s_label.cuda()
-                input_emd = input_emd.cuda()
-                class_label = class_label.cuda()
-                domain_label = domain_label.cuda()
+                s_input_emd = s_input_emd.cuda()
+                s_class_label = s_class_label.cuda()
+                s_domain_label = s_domain_label.cuda()
 
             # 将输入向量转化成source一样的维度
-            input_emd.resize_as_(s_emd).copy_(s_emd)
-            class_label.resize_as_(s_label).copy_(s_label)
+            s_input_emd.resize_as_(s_emd).copy_(s_emd)
+            s_class_label.resize_as_(s_label).copy_(s_label)
 
             # 训练网络返回source域的分类标签和域标签（默认为0）
             # 等价与my_net.forward(data)，在__call__中调用了self.forward()
-            class_output, domain_output = my_net(input_data=input_emd, alpha=alpha)
-            err_s_label = loss_class(class_output, class_label)
-            err_s_domain = loss_domain(domain_output, domain_label)
+            s_class_output, s_domain_output = my_net(input_data=s_input_emd, alpha=alpha)
+            err_s_label = loss_class(s_class_output, s_class_label)
+            err_s_domain = loss_domain(s_domain_output, s_domain_label)
 
             # training model using target data，训练目标域数据
             data_target = data_target_iter.next()
-            t_emd, _ = data_target
-
+            t_emd, t_label = data_target
             batch_size = len(t_emd)
-
-            input_emd = torch.FloatTensor(batch_size, emd_channels, 1, emd_width)
+            t_input_emd = torch.FloatTensor(batch_size, emd_channels, 1, emd_width)
+            t_class_label = torch.LongTensor(batch_size)
             # 域标签设置为1
-            domain_label = torch.ones(batch_size)
-            domain_label = domain_label.long()
+            t_domain_label = torch.ones(batch_size)
+            t_domain_label = t_domain_label.long()
 
             if cuda:
                 t_emd = t_emd.cuda()
-                input_emd = input_emd.cuda()
-                domain_label = domain_label.cuda()
+                t_label = t_label.cuda()
+                t_input_emd = t_input_emd.cuda()
+                t_class_label = t_class_label.cuda()
+                t_domain_label = t_domain_label.cuda()
 
-            input_emd.resize_as_(t_emd).copy_(t_emd)
-
-            _, domain_output = my_net(input_data=input_emd, alpha=alpha)
+            t_input_emd.resize_as_(t_emd).copy_(t_emd)
+            t_class_label.resize_as_(t_label).copy_(t_label)
+            t_class_output, t_domain_output = my_net(input_data=t_input_emd, alpha=alpha)
+            err_t_label = loss_class(t_class_output, t_class_label)
             # 目标域判别loss
-            err_t_domain = loss_domain(domain_output, domain_label)
+            err_t_domain = loss_domain(t_domain_output, t_domain_label)
+            err_t_label = loss_class(t_class_output, t_class_label)
             # 总体loss=源域标签loss+源域判别loss+目标域判别loss
-            err = err_t_domain + err_s_domain + err_s_label
+            err = err_t_domain + err_s_domain + err_s_label + err_t_label
             # 反向传播，计算当前梯度
             err.backward()
             # 根据梯度更新网络参数
@@ -159,9 +160,9 @@ if __name__ == '__main__':
 
             i += 1
 
-            print('epoch: %d, [iter: %d / all %d], err_s_label: %f, err_s_domain: %f, err_t_domain: %f'
+            print('epoch: %d, [iter: %d / all %d], err_s_label: %f, err_s_domain: %f, err_t_label: %f, err_t_domain: %f'
                    % (epoch, i, len_dataloader, err_s_label.cpu().data.numpy(),
-                     err_s_domain.cpu().data.numpy(), err_t_domain.cpu().data.numpy()))
+                     err_s_domain.cpu().data.numpy(), err_t_label.cpu().data.numpy(), err_t_domain.cpu().data.numpy()))
 
         torch.save(my_net, '{0}/emd_model_epoch_{1}.pth'.format(model_root, epoch))
         # 测试源数据和目标数据的准确率
